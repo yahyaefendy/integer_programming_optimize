@@ -27,13 +27,27 @@ class Controller extends BaseController
 
     public function index() {
         $products = Product::all();
+        
+        if ($products->count() <= 0) {
+            return view('home', [ 
+                'products' => $products,
+                'total' => 0,
+                'x' => 0,
+                'y' => 0,
+                'fixedy' => 0,
+                'fixedx' => 0,
+                'constraint' => 0
+            ]);
+        }
+        // dump($products);
 
         $values = array();
         $pembagi = 1;
         $telah_dibagi = false;
         foreach($products as $i => $product) {
             foreach($product->data as $key => $data) {
-                $constraint = (int) $data->constraint->value_2;
+                // dump($data->constraint->value_2); die();
+                $constraint = (int) ($data->constraint->value_2 ?? 0);
 
                 $value = $data->value;
                 if ((int) $data->value != 1) {
@@ -41,8 +55,9 @@ class Controller extends BaseController
                         $telah_dibagi = true;
                         $pembagi = (int) $data->value;
                     }
-                    $value = $data->value / $pembagi;
-                    $constraint = (int) $data->constraint->value_2 / $pembagi;
+                    // dump($data->value); die();
+                    $value = (int) $data->value / $pembagi;
+                    $constraint = (int) ($data->constraint->value_2 ?? 0) / $pembagi;
                 }
 
                 if (!empty($data->constraint->value_2)) {
@@ -52,6 +67,9 @@ class Controller extends BaseController
                 }
             }
         }
+
+        // dump($values);
+        // die();
 
         $fixValue = array();
 
@@ -73,38 +91,42 @@ class Controller extends BaseController
                 $fixValue[0][0]['constraint']  = $constraint;
             }
         }
-        $y = $fixValue[0][0]['constraint'] / $fixValue[0][0]['value'];
+        
+        if (array_key_exists(0, $fixValue)) {
+            $y = $fixValue[0][0]['constraint'] / $fixValue[0][0]['value'];
 
-        foreach($values as $key => $value_array) {
-            $array = Arr::first($value_array);
-            $x = $array['value'] * $y;
-            $x = $array['constraint'] - $x;
-        }
+            foreach($values as $key => $value_array) {
+                $array = Arr::first($value_array);
+                $x = $array['value'] * $y;
+                $x = $array['constraint'] - $x;
+            }
 
-        $number = 0;
-        foreach($products as $i => $product) {
-            foreach($product->data as $key => $data) {
-                // $constraint = (int) $data->constraint->value_2;
-                if (empty($data->constraint->value_1) && empty($data->constraint->value_2)) {
-                    $number++;
-                    if ($number == 2) {
-                        $fixedy = $y * (int) $data->value;
-                    } else if ($number == 1) {
-                        $fixedx = $x * (int) $data->value;
+            $number = 0;
+            foreach($products as $i => $product) {
+                foreach($product->data as $key => $data) {
+                    // $constraint = (int) $data->constraint->value_2;
+                    if (empty($data->constraint->value_1) && empty($data->constraint->value_2)) {
+                        $number++;
+                        if ($number == 2) {
+                            $fixedy = $y * (int) $data->value;
+                        } else if ($number == 1) {
+                            $fixedx = $x * (int) $data->value;
+                        }
                     }
                 }
             }
+
+            $total = ($fixedy ?? 0) + ($fixedx ?? 0);
         }
-
-        $total = $fixedy + $fixedx;
-
+        
         return view('home', [ 
             'products' => $products,
-            'total' => $total,
-            'x' => $x,
-            'y' => $y,
-            'fixedy' => $fixedy,
-            'fixedx' => $fixedx
+            'total' => $total ?? 0,
+            'x' => $x ?? 0,
+            'y' => $y ?? 0,
+            'fixedy' => $fixedy ?? 0,
+            'fixedx' => $fixedx ?? 0,
+            'constraint' => $fixValue[0][0]['constraint'] ?? 0
         ]);
     }
 
@@ -134,17 +156,20 @@ class Controller extends BaseController
             'product'   => $product,
             'fields'    => $fields,
             'form'      => $form,
-            'allData'   => $allData
+            'allData'   => $allData,
+            'constraint' => 0
         ]);
     }
 
     public function saveItem(Request $request) {
         $validated = $request->validate([
             'name' => 'required|max:255',
+            'type' => 'required'
         ]);
 
         $field = new Field;
         $field->name = $request->name;
+        $field->type = $request->type;
         $field->save();
 
         return redirect()->route('controller.addItem', $request->id_product);
@@ -153,6 +178,7 @@ class Controller extends BaseController
     public function editItem($id, $id_product) {
         $field = Field::find($id);
         $product = Product::find($id_product);
+        dump($id, $id_product); die();
 
         return view('editfield', [
             'field'     => $field,
@@ -192,7 +218,7 @@ class Controller extends BaseController
         foreach($fieldValues as $value) {
             $data = new Data;
             $data->product_id       = $request->id_product;
-            $data->product_data_id  = $productData->id;
+            $data->product_data_id  = $request->id_product;
             $data->field_id         = $value['id_field'];
             $data->value            = $value['value'];
             $data->save();
@@ -226,11 +252,21 @@ class Controller extends BaseController
         $fields = Field::select('name')->get();
         $fieldNames = Arr::pluck($fields->toArray(), 'name');
         $fieldValues = Arr::only($request->all(), $fieldNames);
-
+        
         foreach($fieldValues as $value) {
-            $data = Data::find($value['id_data']);
-            $data->value = $value['value'];
-            $data->update();
+            // dump($value); die();
+            if (isset($value['id_data'])) {
+                $data = Data::find($value['id_data']);
+                $data->value = $value['value'];
+                $data->update();
+            } else {
+                $data = new Data;
+                $data->value = $value['value'];
+                $data->product_id = $request->id_product;
+                $data->product_data_id = $request->id_product;
+                $data->field_id = $value['id_field'];
+                $data->save();
+            }
         }
 
         return redirect()->route('controller.index');

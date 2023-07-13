@@ -27,7 +27,7 @@
                 <input type="hidden" name="id_product" value="{{ $id }}">
                 @foreach($fields as $field)
                     <div class="form-group shadow p-3 rounded bg-warning mt-2">
-                        <label for="{{ $field->name }}">Nama {{ $field->name }}</label>
+                        <label for="{{ $field->name }}">{{ $field->name }}</label>
                         <input 
                             type="text" 
                             name="{{ $field->name }}[value]" 

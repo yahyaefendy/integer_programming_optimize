@@ -14,7 +14,8 @@ class ConstraintController extends Controller
         $fields = Field::all();
 
         return view('constraint', [
-            'fields' => $fields
+            'fields' => $fields,
+            'constraint' => 0
         ]);
     }
 

@@ -32,6 +32,7 @@
             @endif
 
             @foreach($fields as $key => $field)
+            @if($field->type !== 'text')
             <input type="hidden" name="data[{{ $key }}][id_field]" value="{{ $field->id }}">
             <div class="form-group shadow p-3 rounded bg-warning mt-2 row">
                 <div class="col">
@@ -120,6 +121,13 @@
                     <input type="number" name="data[{{ $key }}][value_2]" class="form-control" id="value_2" placeholder="Enter value 2 field" value="{{ isset($field->constraint) ? $field->constraint->value_2 : old('value_2') }}">
                 </div>
             </div>
+            @else
+            <div class="form-group shadow p-3 rounded bg-warning mt-2 row">
+                <div class="col">            
+                    <label class="mt-3 font-weight-bold " for="">{{ $field->name }}</label>
+                </div>
+            </div>
+            @endif
             @endforeach
             
             <button type="submit" class="btn btn-primary shadow">Set constraint</button>

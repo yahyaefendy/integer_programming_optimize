@@ -2,12 +2,15 @@
 <a href="{{ route('controller.create') }}" class="btn btn-outline-primary mb-2 shadow">
     Tambah Produk
 </a>
-<a href="{{ route('controller.addItem') }}" class="btn btn-outline-primary mb-2 shadow">
-    Tambah Field
-</a>
-<a href="{{ route('constraint.constraint') }}" class="btn btn-outline-primary mb-2 shadow">
-    Tambah Batasan
-</a>
+@if($products->count())
+    <a href="{{ route('controller.addItem') }}" class="btn btn-outline-primary mb-2 shadow">
+        Tambah Field
+    </a>
+    <a href="{{ route('constraint.constraint') }}" class="btn btn-outline-primary mb-2 shadow">
+        Tambah Batasan
+    </a>
+@endif
+
 @foreach($products as $product)
     <div class="card border-0 shadow mt-2 @if(isset($id) && $id == $product->id) bg-warning @endif" >
         <div class="card-body">
